@@ -24,6 +24,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.IntDef;
+import android.support.annotation.NonNull;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
 import android.text.format.Time;
@@ -36,12 +37,21 @@ import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.muzei.WeatherMuzeiSource;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.ResultCallback;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.PutDataMapRequest;
+import com.google.android.gms.wearable.PutDataRequest;
+import com.google.android.gms.wearable.Wearable;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -54,6 +64,7 @@ import java.util.concurrent.ExecutionException;
 
 public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     public final String LOG_TAG = SunshineSyncAdapter.class.getSimpleName();
+    public final String LOG_WEAR_TAG = "WEAR";
     public static final String ACTION_DATA_UPDATED =
             "com.example.android.sunshine.app.ACTION_DATA_UPDATED";
     // Interval at which to sync with the weather, in seconds.
@@ -77,6 +88,8 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
     private static final int INDEX_MIN_TEMP = 2;
     private static final int INDEX_SHORT_DESC = 3;
 
+    private final GoogleApiClient googleApiClient;
+
     @Retention(RetentionPolicy.SOURCE)
     @IntDef({LOCATION_STATUS_OK, LOCATION_STATUS_SERVER_DOWN, LOCATION_STATUS_SERVER_INVALID,  LOCATION_STATUS_UNKNOWN, LOCATION_STATUS_INVALID})
     public @interface LocationStatus {}
@@ -89,6 +102,35 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
 
     public SunshineSyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+        googleApiClient = new GoogleApiClient.Builder(context)
+                .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+
+                    @Override
+                    public void onConnected(Bundle connectionHint) {
+                        if (Log.isLoggable(LOG_WEAR_TAG, Log.DEBUG)) {
+                            Log.d(LOG_WEAR_TAG, "onConnected: " + connectionHint);
+                        }
+                    }
+
+                    @Override
+                    public void onConnectionSuspended(int cause) {
+                        if (Log.isLoggable(LOG_WEAR_TAG, Log.DEBUG)) {
+                            Log.d(LOG_WEAR_TAG, "onConnectionSuspended: " + cause);
+                        }
+                    }
+                })
+                .addOnConnectionFailedListener(new GoogleApiClient.OnConnectionFailedListener() {
+
+                    @Override
+                    public void onConnectionFailed(@NonNull ConnectionResult result) {
+                        if (Log.isLoggable(LOG_WEAR_TAG, Log.DEBUG)) {
+                            Log.d(LOG_WEAR_TAG, "onConnectionFailed: " + result);
+                        }
+                    }
+                })
+                .addApi(Wearable.API)
+                .build();
+        googleApiClient.connect();
     }
 
     @Override
@@ -335,6 +377,7 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             int inserted = 0;
             // add to database
             if ( cVVector.size() > 0 ) {
+                sendTodayToWear(cVVector.firstElement());
                 ContentValues[] cvArray = new ContentValues[cVVector.size()];
                 cVVector.toArray(cvArray);
                 getContext().getContentResolver().bulkInsert(WeatherContract.WeatherEntry.CONTENT_URI, cvArray);
@@ -356,6 +399,40 @@ public class SunshineSyncAdapter extends AbstractThreadedSyncAdapter {
             e.printStackTrace();
             setLocationStatus(getContext(), LOCATION_STATUS_SERVER_INVALID);
         }
+    }
+
+    private void sendTodayToWear(ContentValues weatherToday) {
+        PutDataMapRequest dataMap = PutDataMapRequest.create("/sunshine_wearable_data");
+        Double high = weatherToday.getAsDouble(WeatherContract.WeatherEntry.COLUMN_MAX_TEMP);
+        dataMap.getDataMap().putInt("weather-high", high.intValue());
+        Double low = weatherToday.getAsDouble(WeatherContract.WeatherEntry.COLUMN_MIN_TEMP);
+        dataMap.getDataMap().putInt("weather-low", low.intValue());
+
+        int weatherId = weatherToday.getAsInteger(WeatherContract.WeatherEntry.COLUMN_WEATHER_ID);
+        Context context = getContext();
+        int iconId = Utility.getIconResourceForWeatherCondition(weatherId);
+        Bitmap bitmap = BitmapFactory.decodeResource(context.getResources(), iconId);
+        Asset asset = createAssetFromBitmap(bitmap);
+        dataMap.getDataMap().putAsset("weather-icon", asset);
+        PutDataRequest request = dataMap.asPutDataRequest();
+        Wearable.DataApi.putDataItem(googleApiClient,
+                request).setResultCallback(new ResultCallback<DataApi.DataItemResult>() {
+
+            @Override
+            public void onResult(DataApi.DataItemResult dataItemResult) {
+                if (dataItemResult.getStatus().isSuccess()){
+                    Log.i(LOG_WEAR_TAG, "Sent to wearable");
+                } else {
+                    Log.i(LOG_WEAR_TAG, "Can't send to wearable");
+                }
+            }
+        });
+    }
+
+    private static Asset createAssetFromBitmap(Bitmap bitmap) {
+        final ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
+        bitmap.compress(Bitmap.CompressFormat.PNG, 100, byteStream);
+        return Asset.createFromBytes(byteStream.toByteArray());
     }
 
     private void updateWidgets() {

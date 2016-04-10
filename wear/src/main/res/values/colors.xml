@@ -4,4 +4,5 @@
     <color name="background2">#0288D1</color>
     <color name="digital_text">#ffffff</color>
     <color name="digital_date_text">#96DEFF</color>
+    <color name="separator">#89ffffff</color>
 </resources>

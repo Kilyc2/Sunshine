@@ -1,0 +1,120 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    >
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:paddingTop="@dimen/face_padding_top"
+        android:paddingEnd="@dimen/face_padding"
+        android:paddingStart="@dimen/face_padding"
+        android:paddingBottom="@dimen/face_padding"
+        android:background="@color/background">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_horizontal"
+            >
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/hour"
+                android:textSize="@dimen/digital_time_text_size"
+                android:textColor="@color/digital_text"
+                tools:text="21"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/colons"
+                android:textSize="@dimen/digital_time_text_size"
+                android:textColor="@color/digital_text"
+                tools:text=":"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/minute"
+                android:textSize="@dimen/digital_time_text_size"
+                android:textColor="@color/digital_text"
+                tools:text="37"
+                />
+
+        </LinearLayout>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/date"
+            android:layout_gravity="center"
+            android:textSize="@dimen/digital_date_text_size"
+            tools:text="Sun, Apr 10 2016"
+            />
+
+
+        <ImageView
+            android:layout_width="@dimen/separator_width"
+            android:layout_height="@dimen/separator_weight"
+            android:layout_gravity="center"
+            android:layout_marginTop="@dimen/separator_padding"
+            android:layout_marginBottom="@dimen/separator_padding"
+            android:background="@color/separator" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_horizontal">
+
+            <ImageView
+                android:layout_width="@dimen/icon_width"
+                android:layout_height="match_parent"
+                android:id="@+id/weather_icon"
+                tools:src="@drawable/art_clear" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/high"
+                android:textSize="@dimen/digital_temp_text_size"
+                android:paddingStart="@dimen/separation_between_temp"
+                android:textColor="@color/digital_text"
+                tools:text="13"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/digital_temp_text_size"
+                android:textColor="@color/digital_text"
+                android:text="@string/degree"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/low"
+                android:paddingStart="@dimen/separation_between_temp"
+                android:textSize="@dimen/digital_temp_text_size"
+                tools:text="3"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textSize="@dimen/digital_temp_text_size"
+                android:text="@string/degree"
+                />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</FrameLayout>
